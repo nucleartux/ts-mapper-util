@@ -93,6 +93,41 @@ createMapper<Resp, Req, Form>()({
   }),
 });
 
+// ============== EXCESS PROPERTIES AT DEFINITION (nested, spread) ===========
+
+type NestedResp = { targets: { cat1: { x: number }; cat2: { x: number } } };
+type NestedReq = { targets: { cat1: { y: number }; cat2: { y: number } } };
+type NestedForm = { targets: { cat1: { x: number }; cat2: { x: number } } };
+
+createMapper<NestedResp, NestedReq, NestedForm>()({
+  toForm: (d) => ({
+    targets: d.targets,
+  }),
+  toRequest: (d) => ({
+    targets: { cat1: { y: 1 }, cat2: { y: 2 } },
+  }),
+});
+
+createMapper<NestedResp, NestedReq, NestedForm>()({
+  toForm: (d) => ({
+    // @ts-expect-error -- excess nested property 'foo' via spread in toForm return
+    targets: { ...d.targets, foo: "bar" },
+  }),
+  toRequest: (d) => ({
+    targets: { cat1: { y: 1 }, cat2: { y: 2 } },
+  }),
+});
+
+createMapper<NestedResp, NestedReq, NestedForm>()({
+  toForm: (d) => ({
+    targets: d.targets,
+  }),
+  toRequest: (d) => ({
+    // @ts-expect-error -- excess nested property 'foo' via spread in toRequest return
+    targets: { ...{ cat1: { y: 1 }, cat2: { y: 2 } }, foo: "bar" },
+  }),
+});
+
 // ======================== MISSING PROPERTIES ===============================
 
 createMapper<Resp, Req, Form>()({

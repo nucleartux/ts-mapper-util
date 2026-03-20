@@ -11,4 +11,4 @@ export const createMapper: CreateMapper = <
   return fns as unknown as StrictMapper<Response, Form, Request>;
 };
 
-export type { CreateMapper, ExactObject, MapperDef, StrictMapper } from "./types.js";
+export type { CreateMapper, DeepRecord, ExactObject, MapperDef, StrictMapper } from "./types.js";

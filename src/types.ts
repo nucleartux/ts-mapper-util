@@ -6,6 +6,20 @@ export type ExactObject<T, Shape> = T &
   Record<Exclude<keyof T, keyof Shape>, never>;
 
 /**
+ * Recursively intersects every object level with an index signature
+ * `Record<string, T[keyof T] | undefined>`, so excess properties at
+ * any nesting depth are constrained to existing value types.
+ */
+export type DeepRecord<T> = T extends readonly any[]
+  ? T
+  : T extends object
+    ? { [K in keyof T]: DeepRecord<T[K]> } & Record<
+        string,
+        T[keyof T] | undefined
+      >
+    : T;
+
+/**
  * The config object passed to `createMapper`.
  * Uses plain callback signatures so TypeScript applies its built-in
  * excess property checking on object literal returns.
@@ -15,8 +29,8 @@ export interface MapperDef<
   Form extends object,
   Request extends object,
 > {
-  toForm: (data: Response) => Form & Record<string, Form[keyof Form] | undefined>;
-  toRequest: (data: Form) => Request & Record<string, Request[keyof Request] | undefined>;
+  toForm: (data: Response) => DeepRecord<Form>;
+  toRequest: (data: Form) => DeepRecord<Request>;
 }
 
 /**
