@@ -1,6 +1,36 @@
 {
     "name": "ts-mapper-util",
     "version": "0.0.1",
+    "description": "Type-safe bidirectional mappers between API responses, form state, and API requests",
+    "license": "MIT",
+    "author": "Igor Adrov",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/nucleartux/ts-mapper-util.git"
+    },
+    "keywords": [
+        "typescript",
+        "mapper",
+        "type-safe",
+        "form",
+        "api",
+        "bidirectional"
+    ],
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json"
+    },
     "devDependencies": {
         "typescript": "^5.7"
     }
