@@ -72,8 +72,6 @@ createMapper<UserResponse, UserRequest, UserForm>()({
 });
 ```
 
-This is achieved via the `ExactObject` utility type, which maps any key not present in the expected shape to `never`.
-
 ## API
 
 ### `createMapper<Response, Request, Form>()`
@@ -84,10 +82,6 @@ Returns a `StrictMapper<Response, Form, Request>` with:
 
 - **`toForm(data: Response): Form`** — maps an API response to form state
 - **`toRequest(data: Form): Request`** — maps form state to an API request
-
-### `ExactObject<T, Shape>`
-
-Utility type that marks any key in `T` not present in `Shape` as `never`, preventing excess properties.
 
 ## Development
 
