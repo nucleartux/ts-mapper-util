@@ -6,6 +6,23 @@ export type ExactObject<T, Shape> = T &
   Record<Exclude<keyof T, keyof Shape>, never>;
 
 /**
+ * Deeply detects excess keys in T relative to Shape.
+ * Returns `never` for excess keys and `unknown` for matched/leaf keys,
+ * so intersecting `Shape & DeepExact<T, Shape>` yields clean errors:
+ * excess keys become `never`, matched keys stay as `Shape[K]`.
+ * Strips null/undefined from Shape via NonNullable before comparing.
+ */
+export type DeepExact<T, Shape, S = NonNullable<Shape>> = T extends readonly any[]
+  ? unknown
+  : T extends object
+    ? [S] extends [object]
+      ? Record<Exclude<keyof T, keyof S>, never> & {
+          [K in keyof T & keyof S]: DeepExact<T[K], S[K]>;
+        }
+      : unknown
+    : unknown;
+
+/**
  * Recursively intersects every object level with an index signature
  * `Record<string, T[keyof T] | undefined>`, so excess properties at
  * any nesting depth are constrained to existing value types.
@@ -53,7 +70,22 @@ export interface StrictMapper<
 
 export type CreateMapper = {
   <Response extends object, Request extends object, Form extends object>():
-    (fns: MapperDef<Response, Form, Request>) => StrictMapper<Response, Form, Request>;
+    <Fns extends {
+      toForm: (data: Response) => any;
+      toRequest: (data: Form) => any;
+    }>(
+      fns: Fns & {
+        toForm: (data: Response) => Form & DeepExact<ReturnType<Fns['toForm']>, Form>;
+        toRequest: (data: Form) => Request & DeepExact<ReturnType<Fns['toRequest']>, Request>;
+      }
+    ) => StrictMapper<Response, Form, Request>;
   <Response extends object, Request extends object>():
-    <Form extends object>(fns: MapperDef<Response, Form, Request>) => StrictMapper<Response, Form, Request>;
+    <Form extends object, Fns extends {
+      toForm: (data: Response) => Form;
+      toRequest: (data: Form) => any;
+    }>(
+      fns: Fns & {
+        toRequest: (data: Form) => Request & DeepExact<ReturnType<Fns['toRequest']>, Request>;
+      }
+    ) => StrictMapper<Response, Form, Request>;
 };

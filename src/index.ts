@@ -1,14 +1,14 @@
-import type { CreateMapper, MapperDef, StrictMapper } from "./types.js";
+import type { CreateMapper, StrictMapper } from "./types.js";
 
-export const createMapper: CreateMapper = <
+export const createMapper = (<
   Response extends object,
   Request extends object,
   Form extends object,
 >() =>
 (
-  fns: MapperDef<Response, Form, Request>,
+  fns: Record<string, Function>,
 ): StrictMapper<Response, Form, Request> => {
   return fns as unknown as StrictMapper<Response, Form, Request>;
-};
+}) as unknown as CreateMapper;
 
-export type { CreateMapper, DeepRecord, ExactObject, MapperDef, StrictMapper } from "./types.js";
+export type { CreateMapper, DeepExact, DeepRecord, ExactObject, MapperDef, StrictMapper } from "./types.js";

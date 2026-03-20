@@ -1,5 +1,5 @@
 import { createMapper } from "./index.js";
-import type { ExactObject, StrictMapper } from "./types.js";
+import type { DeepExact, ExactObject, StrictMapper } from "./types.js";
 
 
 // ---------------------------------------------------------------------------
@@ -45,14 +45,14 @@ mapper.toRequest({ a: "123", extra: true });
 // ================ EXCESS PROPERTIES AT DEFINITION ==================
 
 createMapper<Resp, Req, Form>()({
+  // @ts-expect-error -- excess property 'extra' in toForm return
   toForm: (d) => ({
     a: d.a,
-    // @ts-expect-error -- excess property 'extra' in toForm return
     extra: true,
   }),
+  // @ts-expect-error -- excess property 'extra' in toRequest return
   toRequest: (d) => ({
     a: Number(d.a),
-    // @ts-expect-error -- excess property 'extra' in toRequest return
     extra: true,
   }),
 });
@@ -74,8 +74,8 @@ createMapper<Resp, Req, Form>()({
 // ========================= WRONG VALUE TYPES ===============================
 
 createMapper<Resp, Req, Form>()({
+  // @ts-expect-error -- wrong return type: a should be string, not number
   toForm: (d) => ({
-    // @ts-expect-error -- wrong return type: a should be string, not number
     a: +d.a,
   }),
   toRequest: (d) => ({
@@ -87,8 +87,8 @@ createMapper<Resp, Req, Form>()({
   toForm: (d) => ({
     a: d.a,
   }),
+  // @ts-expect-error -- wrong return type: a should be number, not string
   toRequest: (d) => ({
-    // @ts-expect-error -- wrong return type: a should be number, not string
     a: d.a,
   }),
 });
@@ -109,8 +109,8 @@ createMapper<NestedResp, NestedReq, NestedForm>()({
 });
 
 createMapper<NestedResp, NestedReq, NestedForm>()({
+  // @ts-expect-error -- excess nested property 'foo' via spread in toForm return
   toForm: (d) => ({
-    // @ts-expect-error -- excess nested property 'foo' via spread in toForm return
     targets: { ...d.targets, foo: "bar" },
   }),
   toRequest: (d) => ({
@@ -122,8 +122,8 @@ createMapper<NestedResp, NestedReq, NestedForm>()({
   toForm: (d) => ({
     targets: d.targets,
   }),
+  // @ts-expect-error -- excess nested property 'foo' via spread in toRequest return
   toRequest: (d) => ({
-    // @ts-expect-error -- excess nested property 'foo' via spread in toRequest return
     targets: { ...{ cat1: { y: 1 }, cat2: { y: 2 } }, foo: "bar" },
   }),
 });
@@ -194,8 +194,8 @@ createMapper<Resp, Req>()({
   toForm: (d) => ({
     a: d.a,
   }),
+  // @ts-expect-error -- wrong return type: a should be number, not string
   toRequest: (d) => ({
-    // @ts-expect-error -- wrong return type: a should be number, not string
     a: d.a,
   }),
 });
@@ -220,3 +220,87 @@ mapper2.toForm({ __t: "lol", a: 123 });
 
 // @ts-expect-error -- entirely wrong argument
 mapper2.toRequest(42);
+
+// ======== EXCESS PROPERTIES WITH COMPATIBLE VALUE TYPE (rest spread) ========
+// Reproduces the real-world bug: rest spread leaks a field whose value type
+// happens to be assignable to an existing value type in the target.
+
+type CompatResp = { a: string; extra: number };
+type CompatReq = { a: number };
+type CompatForm = { a: string; extra: number };
+
+createMapper<CompatResp, CompatReq, CompatForm>()({
+  toForm: (d) => ({
+    a: d.a,
+    extra: d.extra,
+  }),
+  // @ts-expect-error -- excess property 'extra' from rest spread (number matches existing value types)
+  toRequest: ({ a, ...rest }) => ({
+    ...rest,
+    a: Number(a),
+  }),
+});
+
+// Same scenario with destructuring that leaves the excess field in rest
+type MerchantResp = {
+  value: number;
+  connection: { key: string } | null;
+  merchant: number;
+};
+type MerchantReq = {
+  value: number;
+  connection: { key: string } | null;
+};
+type MerchantForm = {
+  value: number;
+  connection: { key: string };
+  merchant: number;
+  useConnection: boolean;
+};
+
+createMapper<MerchantResp, MerchantReq, MerchantForm>()({
+  toForm: (d) => ({
+    value: d.value,
+    connection: d.connection ?? { key: "" },
+    merchant: d.merchant,
+    useConnection: !!d.connection,
+  }),
+  // @ts-expect-error -- 'merchant' and 'useConnection' leak through rest spread
+  toRequest: ({ useConnection, ...d }) => ({
+    ...d,
+    connection: useConnection ? d.connection : null,
+  }),
+});
+
+// Verify the fix doesn't break valid rest spread (no excess properties)
+type CleanResp = { a: string; b: string };
+type CleanReq = { a: number; b: number };
+type CleanForm = { a: string; b: string };
+
+createMapper<CleanResp, CleanReq, CleanForm>()({
+  toForm: (d) => ({
+    a: d.a,
+    b: d.b,
+  }),
+  toRequest: (d) => ({
+    a: Number(d.a),
+    b: Number(d.b),
+  }),
+});
+
+// Valid rest spread: all rest fields belong to Request
+type RestValidResp = { a: string; b: string; extra: string };
+type RestValidReq = { a: number; b: number };
+type RestValidForm = { a: string; b: string; extra: string };
+
+createMapper<RestValidResp, RestValidReq, RestValidForm>()({
+  toForm: (d) => ({
+    a: d.a,
+    b: d.b,
+    extra: d.extra,
+  }),
+  toRequest: ({ extra, ...d }) => ({
+    a: Number(d.a),
+    b: Number(d.b),
+  }),
+});
